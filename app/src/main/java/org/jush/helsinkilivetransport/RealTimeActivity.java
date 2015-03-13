@@ -1,15 +1,25 @@
 package org.jush.helsinkilivetransport;
 
-import android.support.v4.app.FragmentActivity;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.jush.helsinkilivetransport.api.RealTimeVehicles;
+import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
+import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
+
+import retrofit.RestAdapter;
+
 public class RealTimeActivity extends FragmentActivity {
 
+    private final AsyncTask<Void, Void, VehicleMonitoringDelivery> fetchRealTimeVehiclesTask =
+            new FetchRealTimeVehiclesTask();
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
     @Override
@@ -44,7 +54,8 @@ public class RealTimeActivity extends FragmentActivity {
         // Do a null check to confirm that we have not already instantiated the map.
         if (mMap == null) {
             // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();
+            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
+                    .getMap();
             // Check if we were successful in obtaining the map.
             if (mMap != null) {
                 setUpMap();
@@ -59,6 +70,41 @@ public class RealTimeActivity extends FragmentActivity {
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        fetchRealTimeVehicles();
+    }
+
+    private void fetchRealTimeVehicles() {
+        fetchRealTimeVehiclesTask.execute();
+    }
+
+    private class FetchRealTimeVehiclesTask extends AsyncTask<Void, Void, VehicleMonitoringDelivery> {
+        @Override
+        protected VehicleMonitoringDelivery doInBackground(Void... params) {
+            RestAdapter restAdapter = new RestAdapter.Builder().setEndpoint("http://dev.hsl.fi/")
+                    .build();
+            RealTimeVehiclesApi service = restAdapter.create(RealTimeVehiclesApi.class);
+            RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
+            Log.d(RealTimeActivity.class.getSimpleName(), "Result: " + realTimeVehicles);
+            return realTimeVehicles.getSiri()
+                    .getServiceDelivery()
+                    .getVehicleMonitoringDeliveries()
+                    .get(0);
+        }
+
+        @Override
+        protected void onPostExecute(VehicleMonitoringDelivery vehicleMonitoringDelivery) {
+            super.onPostExecute(vehicleMonitoringDelivery);
+            // Clear the map
+            mMap.clear();
+            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleMonitoringDelivery.getVehicleActivities()) {
+                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
+                        vehicleLocation = vehicleActivity
+                        .getMonitoredVehicleJourney()
+                        .getVehicleLocation();
+                mMap.addMarker(new MarkerOptions().position(new LatLng(vehicleLocation
+                        .getLatitude(), vehicleLocation
+                        .getLongitude())));
+            }
+        }
     }
 }
