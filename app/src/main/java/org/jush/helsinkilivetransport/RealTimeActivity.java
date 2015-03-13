@@ -1,6 +1,5 @@
 package org.jush.helsinkilivetransport;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -14,12 +13,14 @@ import org.jush.helsinkilivetransport.api.RealTimeVehicles;
 import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
 import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import retrofit.RestAdapter;
 
 public class RealTimeActivity extends FragmentActivity {
 
-    private final AsyncTask<Void, Void, VehicleMonitoringDelivery> fetchRealTimeVehiclesTask =
-            new FetchRealTimeVehiclesTask();
+    private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
     @Override
@@ -33,6 +34,9 @@ public class RealTimeActivity extends FragmentActivity {
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
+        if (mMap != null) {
+            fetchRealTimeVehicles();
+        }
     }
 
     /**
@@ -70,33 +74,47 @@ public class RealTimeActivity extends FragmentActivity {
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
-        fetchRealTimeVehicles();
+    }
+
+    @Override
+    protected void onPause() {
+        if (timer != null) {
+            timer.cancel();
+        }
+        super.onPause();
     }
 
     private void fetchRealTimeVehicles() {
-        fetchRealTimeVehiclesTask.execute();
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(), 3000, 5000);
     }
 
-    private class FetchRealTimeVehiclesTask extends AsyncTask<Void, Void, VehicleMonitoringDelivery> {
+    private class FetchRealTimeVehiclesTask extends TimerTask {
         @Override
-        protected VehicleMonitoringDelivery doInBackground(Void... params) {
+        public void run() {
             RestAdapter restAdapter = new RestAdapter.Builder().setEndpoint("http://dev.hsl.fi/")
                     .build();
             RealTimeVehiclesApi service = restAdapter.create(RealTimeVehiclesApi.class);
             RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
             Log.d(RealTimeActivity.class.getSimpleName(), "Result: " + realTimeVehicles);
-            return realTimeVehicles.getSiri()
+            final VehicleMonitoringDelivery vehicleMonitoringDelivery = realTimeVehicles.getSiri()
                     .getServiceDelivery()
                     .getVehicleMonitoringDeliveries()
                     .get(0);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    onPostExecute(vehicleMonitoringDelivery);
+                }
+            });
         }
 
-        @Override
         protected void onPostExecute(VehicleMonitoringDelivery vehicleMonitoringDelivery) {
-            super.onPostExecute(vehicleMonitoringDelivery);
             // Clear the map
             mMap.clear();
-            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleMonitoringDelivery.getVehicleActivities()) {
+            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity :
+                    vehicleMonitoringDelivery
+                    .getVehicleActivities()) {
                 VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
                         vehicleLocation = vehicleActivity
                         .getMonitoredVehicleJourney()
