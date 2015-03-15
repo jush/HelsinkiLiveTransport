@@ -3,7 +3,6 @@ package org.jush.helsinkilivetransport;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -13,21 +12,14 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.ui.IconGenerator;
 
-import org.jush.helsinkilivetransport.api.RealTimeVehicles;
-import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
 import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
-import java.util.TimerTask;
-
-import retrofit.RestAdapter;
 
 public class RealTimeActivity extends FragmentActivity {
-    private final FetchRealTimeVehiclesTask fetchRealTimeVehiclesTask = new
-            FetchRealTimeVehiclesTask();
     private final Map<String, Marker> currentMarkers = new HashMap<>();
     private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -112,7 +104,7 @@ public class RealTimeActivity extends FragmentActivity {
 
     private void fetchRealTimeVehicles() {
         timer = new Timer();
-        timer.scheduleAtFixedRate(fetchRealTimeVehiclesTask, 3000, 5000);
+        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(this), 3000, 5000);
     }
 
     protected void onUpdateVehiclePositions(List<VehicleMonitoringDelivery.VehicleActivity>
@@ -172,26 +164,4 @@ public class RealTimeActivity extends FragmentActivity {
         }
     }
 
-    private class FetchRealTimeVehiclesTask extends TimerTask {
-        public final String TAG = RealTimeActivity.class.getSimpleName();
-
-        @Override
-        public void run() {
-            RestAdapter restAdapter = new RestAdapter.Builder().setEndpoint("http://dev.hsl.fi/")
-                    .build();
-            RealTimeVehiclesApi service = restAdapter.create(RealTimeVehiclesApi.class);
-            RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
-            Log.d(TAG, "Result: " + realTimeVehicles);
-            final VehicleMonitoringDelivery vehicleMonitoringDelivery = realTimeVehicles.getSiri()
-                    .getServiceDelivery()
-                    .getVehicleMonitoringDeliveries()
-                    .get(0);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    onUpdateVehiclePositions(vehicleMonitoringDelivery.getVehicleActivities());
-                }
-            });
-        }
-    }
 }
