@@ -71,7 +71,7 @@ public class VehicleMonitoringDelivery {
                         return new LineInformation(LineInformation.LineType.BUS, value.replaceAll
                                 ("^.0*", ""));
                     }
-                    return null;
+                    return new LineInformation(LineInformation.LineType.UNKNOWN, "");
                 }
 
                 public String getValue() {
@@ -96,12 +96,21 @@ public class VehicleMonitoringDelivery {
                         return String.format("%s - %s", type.name(), id);
                     }
 
+                    public String getId() {
+                        return id;
+                    }
+
+                    public LineType getType() {
+                        return type;
+                    }
+
                     public enum LineType {
                         FERRY,
                         SUBWAY,
                         RAIL,
                         TRAM,
                         BUS,
+                        UNKNOWN,
                     }
                 }
             }

@@ -1,13 +1,16 @@
 package org.jush.helsinkilivetransport;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.ui.IconGenerator;
 
 import org.jush.helsinkilivetransport.api.RealTimeVehicles;
 import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
@@ -90,6 +93,20 @@ public class RealTimeActivity extends FragmentActivity {
 
     private class FetchRealTimeVehiclesTask extends TimerTask {
         public final String TAG = RealTimeActivity.class.getSimpleName();
+        private final IconGenerator ferryIconGenerator = new IconGenerator(getApplicationContext());
+        private final IconGenerator subwayIconGenerator = new IconGenerator(getApplicationContext
+                ());
+        private final IconGenerator railIconGenerator = new IconGenerator(getApplicationContext());
+        private final IconGenerator tramIconGenerator = new IconGenerator(getApplicationContext());
+        private final IconGenerator busIconGenerator = new IconGenerator(getApplicationContext());
+
+        public FetchRealTimeVehiclesTask() {
+            ferryIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
+            subwayIconGenerator.setStyle(IconGenerator.STYLE_ORANGE);
+            railIconGenerator.setStyle(IconGenerator.STYLE_RED);
+            tramIconGenerator.setStyle(IconGenerator.STYLE_GREEN);
+            busIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
+        }
 
         @Override
         public void run() {
@@ -122,11 +139,37 @@ public class RealTimeActivity extends FragmentActivity {
                 VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
                         vehicleLocation = monitoredVehicleJourney
                         .getVehicleLocation();
-                mMap.addMarker(new MarkerOptions().position(new LatLng(vehicleLocation
-                        .getLatitude(), vehicleLocation
-                        .getLongitude())));
-                Log.d(TAG, String.format("Vehicle: %s", monitoredVehicleJourney.getLineRef()
-                        .getUserFriendlineLine()));
+                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.LineRef
+                        .LineInformation lineInformation = monitoredVehicleJourney
+                        .getLineRef()
+                        .getUserFriendlineLine();
+                if (lineInformation.getType() == VehicleMonitoringDelivery.VehicleActivity
+                        .MonitoredVehicleJourney.LineRef.LineInformation.LineType.UNKNOWN) {
+                    continue;
+                }
+                String lineId = lineInformation.getId();
+                Bitmap icon;
+                switch (lineInformation.getType()) {
+                    case FERRY:
+                        icon = ferryIconGenerator.makeIcon(lineId);
+                        break;
+                    case SUBWAY:
+                        icon = subwayIconGenerator.makeIcon(lineId);
+                        break;
+                    case RAIL:
+                        icon = railIconGenerator.makeIcon(lineId);
+                        break;
+                    case TRAM:
+                        icon = tramIconGenerator.makeIcon(lineId);
+                        break;
+                    case BUS:
+                    default:
+                        icon = busIconGenerator.makeIcon(lineId);
+                        break;
+                }
+                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromBitmap(icon))
+                        .position(new LatLng(vehicleLocation.getLatitude(), vehicleLocation
+                                .getLongitude())));
             }
         }
     }
