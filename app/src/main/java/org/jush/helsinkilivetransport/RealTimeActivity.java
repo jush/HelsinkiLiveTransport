@@ -18,6 +18,7 @@ import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
 import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -126,15 +127,13 @@ public class RealTimeActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    onPostExecute(vehicleMonitoringDelivery);
+                    onPostExecute(vehicleMonitoringDelivery.getVehicleActivities());
                 }
             });
         }
 
-        protected void onPostExecute(VehicleMonitoringDelivery vehicleMonitoringDelivery) {
-            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity :
-                    vehicleMonitoringDelivery
-                    .getVehicleActivities()) {
+        protected void onPostExecute(List<VehicleMonitoringDelivery.VehicleActivity> vehicleActivities) {
+            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleActivities) {
                 VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney
                         monitoredVehicleJourney = vehicleActivity
                         .getMonitoredVehicleJourney();
