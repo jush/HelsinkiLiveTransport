@@ -27,12 +27,19 @@ public class VehicleMonitoringDelivery {
             @SerializedName("LineRef")
             private LineRef lineRef;
 
+            @SerializedName("VehicleRef")
+            private VehicleRef vehicleRef;
+
             public VehicleLocation getVehicleLocation() {
                 return vehicleLocation;
             }
 
             public LineRef getLineRef() {
                 return lineRef;
+            }
+
+            public VehicleRef getVehicleRef() {
+                return vehicleRef;
             }
 
             public static class VehicleLocation {
@@ -112,6 +119,15 @@ public class VehicleMonitoringDelivery {
                         BUS,
                         UNKNOWN,
                     }
+                }
+            }
+
+            public static class VehicleRef {
+                @SerializedName("value")
+                private String value;
+
+                public String getValue() {
+                    return value;
                 }
             }
         }

@@ -9,6 +9,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.ui.IconGenerator;
 
@@ -16,6 +17,8 @@ import org.jush.helsinkilivetransport.api.RealTimeVehicles;
 import org.jush.helsinkilivetransport.api.RealTimeVehiclesApi;
 import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -24,6 +27,7 @@ import retrofit.RestAdapter;
 public class RealTimeActivity extends FragmentActivity {
     private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+    private final Map<String, Marker> currentMarkers = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,8 +132,6 @@ public class RealTimeActivity extends FragmentActivity {
         }
 
         protected void onPostExecute(VehicleMonitoringDelivery vehicleMonitoringDelivery) {
-            // Clear the map
-            mMap.clear();
             for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity :
                     vehicleMonitoringDelivery
                     .getVehicleActivities()) {
@@ -147,29 +149,43 @@ public class RealTimeActivity extends FragmentActivity {
                         .MonitoredVehicleJourney.LineRef.LineInformation.LineType.UNKNOWN) {
                     continue;
                 }
-                String lineId = lineInformation.getId();
-                Bitmap icon;
-                switch (lineInformation.getType()) {
-                    case FERRY:
-                        icon = ferryIconGenerator.makeIcon(lineId);
-                        break;
-                    case SUBWAY:
-                        icon = subwayIconGenerator.makeIcon(lineId);
-                        break;
-                    case RAIL:
-                        icon = railIconGenerator.makeIcon(lineId);
-                        break;
-                    case TRAM:
-                        icon = tramIconGenerator.makeIcon(lineId);
-                        break;
-                    case BUS:
-                    default:
-                        icon = busIconGenerator.makeIcon(lineId);
-                        break;
+
+                LatLng vehicleLatLng = new LatLng(vehicleLocation.getLatitude(), vehicleLocation
+                        .getLongitude());
+
+                String vehicleId = monitoredVehicleJourney.getVehicleRef().getValue();
+                // Check if we already have a marker for the vehicle
+                Marker vehicleMarker = currentMarkers.get(vehicleId);
+                if (vehicleMarker != null) {
+                    // If we do have it then just update the position
+                    vehicleMarker.setPosition(vehicleLatLng);
+                } else {
+                    // If not then create a new marker
+                    String lineId = lineInformation.getId();
+                    Bitmap icon;
+                    switch (lineInformation.getType()) {
+                        case FERRY:
+                            icon = ferryIconGenerator.makeIcon(lineId);
+                            break;
+                        case SUBWAY:
+                            icon = subwayIconGenerator.makeIcon(lineId);
+                            break;
+                        case RAIL:
+                            icon = railIconGenerator.makeIcon(lineId);
+                            break;
+                        case TRAM:
+                            icon = tramIconGenerator.makeIcon(lineId);
+                            break;
+                        case BUS:
+                        default:
+                            icon = busIconGenerator.makeIcon(lineId);
+                            break;
+                    }
+                    vehicleMarker = mMap.addMarker(new MarkerOptions().icon
+                            (BitmapDescriptorFactory.fromBitmap(icon))
+                            .position(vehicleLatLng));
+                    currentMarkers.put(vehicleId, vehicleMarker);
                 }
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromBitmap(icon))
-                        .position(new LatLng(vehicleLocation.getLatitude(), vehicleLocation
-                                .getLongitude())));
             }
         }
     }
