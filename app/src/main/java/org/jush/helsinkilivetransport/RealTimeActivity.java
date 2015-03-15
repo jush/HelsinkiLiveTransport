@@ -26,14 +26,33 @@ import java.util.TimerTask;
 import retrofit.RestAdapter;
 
 public class RealTimeActivity extends FragmentActivity {
+    private final FetchRealTimeVehiclesTask fetchRealTimeVehiclesTask = new
+            FetchRealTimeVehiclesTask();
+    private final Map<String, Marker> currentMarkers = new HashMap<>();
     private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
-    private final Map<String, Marker> currentMarkers = new HashMap<>();
+    private IconGenerator ferryIconGenerator;
+    private IconGenerator subwayIconGenerator;
+    private IconGenerator railIconGenerator;
+    private IconGenerator tramIconGenerator;
+    private IconGenerator busIconGenerator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_real_time);
+
+        ferryIconGenerator = new IconGenerator(this);
+        ferryIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
+        subwayIconGenerator = new IconGenerator(this);
+        subwayIconGenerator.setStyle(IconGenerator.STYLE_ORANGE);
+        railIconGenerator = new IconGenerator(this);
+        railIconGenerator.setStyle(IconGenerator.STYLE_RED);
+        tramIconGenerator = new IconGenerator(this);
+        tramIconGenerator.setStyle(IconGenerator.STYLE_GREEN);
+        busIconGenerator = new IconGenerator(this);
+        busIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
+
         setUpMapIfNeeded();
     }
 
@@ -93,25 +112,68 @@ public class RealTimeActivity extends FragmentActivity {
 
     private void fetchRealTimeVehicles() {
         timer = new Timer();
-        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(), 3000, 5000);
+        timer.scheduleAtFixedRate(fetchRealTimeVehiclesTask, 3000, 5000);
+    }
+
+    protected void onUpdateVehiclePositions(List<VehicleMonitoringDelivery.VehicleActivity>
+                                                    vehicleActivities) {
+        for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleActivities) {
+            VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney
+                    monitoredVehicleJourney = vehicleActivity
+                    .getMonitoredVehicleJourney();
+            VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
+                    vehicleLocation = monitoredVehicleJourney
+                    .getVehicleLocation();
+            VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.LineRef
+                    .LineInformation lineInformation = monitoredVehicleJourney
+                    .getLineRef()
+                    .getUserFriendlyLine();
+            if (lineInformation.getType() == VehicleMonitoringDelivery.VehicleActivity
+                    .MonitoredVehicleJourney.LineRef.LineInformation.LineType.UNKNOWN) {
+                continue;
+            }
+
+            LatLng vehicleLatLng = new LatLng(vehicleLocation.getLatitude(), vehicleLocation
+                    .getLongitude());
+
+            String vehicleId = monitoredVehicleJourney.getVehicleRef().getValue();
+            // Check if we already have a marker for the vehicle
+            Marker vehicleMarker = currentMarkers.get(vehicleId);
+            if (vehicleMarker != null) {
+                // If we do have it then just update the position
+                vehicleMarker.setPosition(vehicleLatLng);
+            } else {
+                // If not then create a new marker
+                String lineId = lineInformation.getId();
+                Bitmap icon;
+                switch (lineInformation.getType()) {
+                    case FERRY:
+                        icon = ferryIconGenerator.makeIcon(lineId);
+                        break;
+                    case SUBWAY:
+                        icon = subwayIconGenerator.makeIcon(lineId);
+                        break;
+                    case RAIL:
+                        icon = railIconGenerator.makeIcon(lineId);
+                        break;
+                    case TRAM:
+                        icon = tramIconGenerator.makeIcon(lineId);
+                        break;
+                    case BUS:
+                    default:
+                        icon = busIconGenerator.makeIcon(lineId);
+                        break;
+                }
+                vehicleMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory
+                        .fromBitmap(icon))
+                        .position(vehicleLatLng));
+                currentMarkers.put(vehicleId, vehicleMarker);
+            }
+        }
     }
 
     private class FetchRealTimeVehiclesTask extends TimerTask {
         public final String TAG = RealTimeActivity.class.getSimpleName();
-        private final IconGenerator ferryIconGenerator = new IconGenerator(getApplicationContext());
-        private final IconGenerator subwayIconGenerator = new IconGenerator(getApplicationContext
-                ());
-        private final IconGenerator railIconGenerator = new IconGenerator(getApplicationContext());
-        private final IconGenerator tramIconGenerator = new IconGenerator(getApplicationContext());
-        private final IconGenerator busIconGenerator = new IconGenerator(getApplicationContext());
-
-        public FetchRealTimeVehiclesTask() {
-            ferryIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
-            subwayIconGenerator.setStyle(IconGenerator.STYLE_ORANGE);
-            railIconGenerator.setStyle(IconGenerator.STYLE_RED);
-            tramIconGenerator.setStyle(IconGenerator.STYLE_GREEN);
-            busIconGenerator.setStyle(IconGenerator.STYLE_BLUE);
-        }
 
         @Override
         public void run() {
@@ -127,65 +189,9 @@ public class RealTimeActivity extends FragmentActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    onPostExecute(vehicleMonitoringDelivery.getVehicleActivities());
+                    onUpdateVehiclePositions(vehicleMonitoringDelivery.getVehicleActivities());
                 }
             });
-        }
-
-        protected void onPostExecute(List<VehicleMonitoringDelivery.VehicleActivity> vehicleActivities) {
-            for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleActivities) {
-                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney
-                        monitoredVehicleJourney = vehicleActivity
-                        .getMonitoredVehicleJourney();
-                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
-                        vehicleLocation = monitoredVehicleJourney
-                        .getVehicleLocation();
-                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.LineRef
-                        .LineInformation lineInformation = monitoredVehicleJourney
-                        .getLineRef()
-                        .getUserFriendlyLine();
-                if (lineInformation.getType() == VehicleMonitoringDelivery.VehicleActivity
-                        .MonitoredVehicleJourney.LineRef.LineInformation.LineType.UNKNOWN) {
-                    continue;
-                }
-
-                LatLng vehicleLatLng = new LatLng(vehicleLocation.getLatitude(), vehicleLocation
-                        .getLongitude());
-
-                String vehicleId = monitoredVehicleJourney.getVehicleRef().getValue();
-                // Check if we already have a marker for the vehicle
-                Marker vehicleMarker = currentMarkers.get(vehicleId);
-                if (vehicleMarker != null) {
-                    // If we do have it then just update the position
-                    vehicleMarker.setPosition(vehicleLatLng);
-                } else {
-                    // If not then create a new marker
-                    String lineId = lineInformation.getId();
-                    Bitmap icon;
-                    switch (lineInformation.getType()) {
-                        case FERRY:
-                            icon = ferryIconGenerator.makeIcon(lineId);
-                            break;
-                        case SUBWAY:
-                            icon = subwayIconGenerator.makeIcon(lineId);
-                            break;
-                        case RAIL:
-                            icon = railIconGenerator.makeIcon(lineId);
-                            break;
-                        case TRAM:
-                            icon = tramIconGenerator.makeIcon(lineId);
-                            break;
-                        case BUS:
-                        default:
-                            icon = busIconGenerator.makeIcon(lineId);
-                            break;
-                    }
-                    vehicleMarker = mMap.addMarker(new MarkerOptions().icon
-                            (BitmapDescriptorFactory.fromBitmap(icon))
-                            .position(vehicleLatLng));
-                    currentMarkers.put(vehicleId, vehicleMarker);
-                }
-            }
         }
     }
 }
