@@ -19,7 +19,6 @@ import java.util.TimerTask;
 import retrofit.RestAdapter;
 
 public class RealTimeActivity extends FragmentActivity {
-
     private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
@@ -90,13 +89,15 @@ public class RealTimeActivity extends FragmentActivity {
     }
 
     private class FetchRealTimeVehiclesTask extends TimerTask {
+        public final String TAG = RealTimeActivity.class.getSimpleName();
+
         @Override
         public void run() {
             RestAdapter restAdapter = new RestAdapter.Builder().setEndpoint("http://dev.hsl.fi/")
                     .build();
             RealTimeVehiclesApi service = restAdapter.create(RealTimeVehiclesApi.class);
             RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
-            Log.d(RealTimeActivity.class.getSimpleName(), "Result: " + realTimeVehicles);
+            Log.d(TAG, "Result: " + realTimeVehicles);
             final VehicleMonitoringDelivery vehicleMonitoringDelivery = realTimeVehicles.getSiri()
                     .getServiceDelivery()
                     .getVehicleMonitoringDeliveries()
@@ -115,13 +116,17 @@ public class RealTimeActivity extends FragmentActivity {
             for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity :
                     vehicleMonitoringDelivery
                     .getVehicleActivities()) {
+                VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney
+                        monitoredVehicleJourney = vehicleActivity
+                        .getMonitoredVehicleJourney();
                 VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.VehicleLocation
-                        vehicleLocation = vehicleActivity
-                        .getMonitoredVehicleJourney()
+                        vehicleLocation = monitoredVehicleJourney
                         .getVehicleLocation();
                 mMap.addMarker(new MarkerOptions().position(new LatLng(vehicleLocation
                         .getLatitude(), vehicleLocation
                         .getLongitude())));
+                Log.d(TAG, String.format("Vehicle: %s", monitoredVehicleJourney.getLineRef()
+                        .getUserFriendlineLine()));
             }
         }
     }
