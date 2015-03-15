@@ -54,28 +54,55 @@ public class VehicleMonitoringDelivery {
                 @SerializedName("value")
                 private String value;
 
+                private static LineInformation parseRouteId(String value) {
+                    if (value.startsWith("1019")) {
+                        return new LineInformation(LineInformation.LineType.FERRY, "Ferry");
+                    } else if (value.startsWith("1300")) {
+                        return new LineInformation(LineInformation.LineType.SUBWAY, value
+                                .substring(4, 5));
+                    } else if (value.startsWith("300")) {
+                        return new LineInformation(LineInformation.LineType.RAIL, value.substring
+                                (4, 5));
+                    } else if (value.startsWith("100") || value.startsWith("1010")) {
+                        return new LineInformation(LineInformation.LineType.TRAM, value
+                                .replaceAll("^.0*", ""));
+                    } else if (value.charAt(0) == '1' || value.charAt(0) == '2' || value.charAt
+                            (0) == '4') { // if starts with 1,2 or 4
+                        return new LineInformation(LineInformation.LineType.BUS, value.replaceAll
+                                ("^.0*", ""));
+                    }
+                    return null;
+                }
+
                 public String getValue() {
                     return value;
                 }
 
-                public String getUserFriendlineLine() {
+                public LineInformation getUserFriendlineLine() {
                     return parseRouteId(value);
                 }
 
-                private static String parseRouteId(String value) {
-                    if (value.startsWith("1019")) {
-                        return "Ferry";
-                    } else if (value.startsWith("1300")) {
-                        return "Subway";
-                    } else if (value.startsWith("300")) {
-                        return "Rail " + value.substring(4, 5);
-                    } else if (value.startsWith("100") || value.startsWith("1010")) {
-                        return "Tram " + value.replaceAll("^.0*", "");
-                    } else if (value.charAt(0) == '1' || value.charAt(0) == '2' || value.charAt
-                            (0) == '4') { // if starts with 1,2 or 4
-                        return "Bus " + value.replaceAll("^.0*", "");
+                public static class LineInformation {
+                    private final LineType type;
+                    private final String id;
+
+                    public LineInformation(LineType type, String id) {
+                        this.type = type;
+                        this.id = id;
                     }
-                    return null;
+
+                    @Override
+                    public String toString() {
+                        return String.format("%s - %s", type.name(), id);
+                    }
+
+                    public enum LineType {
+                        FERRY,
+                        SUBWAY,
+                        RAIL,
+                        TRAM,
+                        BUS,
+                    }
                 }
             }
         }
