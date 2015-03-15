@@ -85,7 +85,7 @@ public class VehicleMonitoringDelivery {
                     return value;
                 }
 
-                public LineInformation getUserFriendlineLine() {
+                public LineInformation getUserFriendlyLine() {
                     return parseRouteId(value);
                 }
 

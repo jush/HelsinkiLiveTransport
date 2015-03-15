@@ -144,7 +144,7 @@ public class RealTimeActivity extends FragmentActivity {
                 VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney.LineRef
                         .LineInformation lineInformation = monitoredVehicleJourney
                         .getLineRef()
-                        .getUserFriendlineLine();
+                        .getUserFriendlyLine();
                 if (lineInformation.getType() == VehicleMonitoringDelivery.VehicleActivity
                         .MonitoredVehicleJourney.LineRef.LineInformation.LineType.UNKNOWN) {
                     continue;
