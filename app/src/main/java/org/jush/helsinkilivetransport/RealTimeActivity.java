@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 
+import de.greenrobot.event.EventBus;
+
 public class RealTimeActivity extends FragmentActivity {
     private final Map<String, Marker> currentMarkers = new HashMap<>();
     private Timer timer;
@@ -51,6 +53,7 @@ public class RealTimeActivity extends FragmentActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        EventBus.getDefault().register(this);
         setUpMapIfNeeded();
         if (mMap != null) {
             fetchRealTimeVehicles();
@@ -99,15 +102,16 @@ public class RealTimeActivity extends FragmentActivity {
         if (timer != null) {
             timer.cancel();
         }
+        EventBus.getDefault().unregister(this);
         super.onPause();
     }
 
     private void fetchRealTimeVehicles() {
         timer = new Timer();
-        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(this), 3000, 5000);
+        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(), 3000, 5000);
     }
 
-    protected void onUpdateVehiclePositions(List<VehicleMonitoringDelivery.VehicleActivity>
+    public void onEventMainThread(List<VehicleMonitoringDelivery.VehicleActivity>
                                                     vehicleActivities) {
         for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleActivities) {
             VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney

@@ -8,15 +8,11 @@ import org.jush.helsinkilivetransport.api.VehicleMonitoringDelivery;
 
 import java.util.TimerTask;
 
+import de.greenrobot.event.EventBus;
 import retrofit.RestAdapter;
 
 class FetchRealTimeVehiclesTask extends TimerTask {
-    private RealTimeActivity realTimeActivity;
-    public final String TAG = RealTimeActivity.class.getSimpleName();
-
-    public FetchRealTimeVehiclesTask(RealTimeActivity realTimeActivity) {
-        this.realTimeActivity = realTimeActivity;
-    }
+    public final String TAG = FetchRealTimeVehiclesTask.class.getSimpleName();
 
     @Override
     public void run() {
@@ -29,12 +25,6 @@ class FetchRealTimeVehiclesTask extends TimerTask {
                 .getServiceDelivery()
                 .getVehicleMonitoringDeliveries()
                 .get(0);
-        realTimeActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                realTimeActivity.onUpdateVehiclePositions(vehicleMonitoringDelivery
-                        .getVehicleActivities());
-            }
-        });
+        EventBus.getDefault().post(vehicleMonitoringDelivery.getVehicleActivities());
     }
 }
