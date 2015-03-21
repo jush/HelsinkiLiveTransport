@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Helsinki Live Transport</string>
+    <string name="title_activity_real_time">"Real Time Transport "</string>
+</resources>
