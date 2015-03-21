@@ -10,6 +10,7 @@ import java.util.TimerTask;
 
 import de.greenrobot.event.EventBus;
 import retrofit.RestAdapter;
+import retrofit.RetrofitError;
 
 class FetchRealTimeVehiclesTask extends TimerTask {
     public final String TAG = FetchRealTimeVehiclesTask.class.getSimpleName();
@@ -19,12 +20,19 @@ class FetchRealTimeVehiclesTask extends TimerTask {
         RestAdapter restAdapter = new RestAdapter.Builder().setEndpoint("http://dev.hsl.fi/")
                 .build();
         RealTimeVehiclesApi service = restAdapter.create(RealTimeVehiclesApi.class);
-        RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
-        Log.d(TAG, "Result: " + realTimeVehicles);
-        final VehicleMonitoringDelivery vehicleMonitoringDelivery = realTimeVehicles.getSiri()
-                .getServiceDelivery()
-                .getVehicleMonitoringDeliveries()
-                .get(0);
-        EventBus.getDefault().post(vehicleMonitoringDelivery.getVehicleActivities());
+        try {
+            RealTimeVehicles realTimeVehicles = service.fetchRealTimeVehicles();
+            if (realTimeVehicles == null) {
+                Log.w(TAG, "No answer received");
+                return;
+            }
+            VehicleMonitoringDelivery vehicleMonitoringDelivery = realTimeVehicles.getSiri()
+                    .getServiceDelivery()
+                    .getVehicleMonitoringDeliveries()
+                    .get(0);
+            EventBus.getDefault().post(vehicleMonitoringDelivery.getVehicleActivities());
+        } catch (RetrofitError e) {
+            Log.w(TAG, "Error while fetching data", e);
+        }
     }
 }
