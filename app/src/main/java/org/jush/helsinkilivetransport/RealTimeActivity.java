@@ -22,6 +22,8 @@ import java.util.Timer;
 import de.greenrobot.event.EventBus;
 
 public class RealTimeActivity extends FragmentActivity {
+    private static final int INITIAL_DELAY = 3000;
+    private static final int REPEAT_PERIOD = 5000;
     private final Map<String, Marker> currentMarkers = new HashMap<>();
     private Timer timer;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -108,11 +110,17 @@ public class RealTimeActivity extends FragmentActivity {
 
     private void fetchRealTimeVehicles() {
         timer = new Timer();
-        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(), 3000, 5000);
+        timer.scheduleAtFixedRate(new FetchRealTimeVehiclesTask(), INITIAL_DELAY, REPEAT_PERIOD);
     }
 
+    /**
+     * Called from {@link FetchRealTimeVehiclesTask} through EventBus
+     *
+     * @param vehicleActivities
+     */
+    @SuppressWarnings("unused")
     public void onEventMainThread(List<VehicleMonitoringDelivery.VehicleActivity>
-                                                    vehicleActivities) {
+                                          vehicleActivities) {
         for (VehicleMonitoringDelivery.VehicleActivity vehicleActivity : vehicleActivities) {
             VehicleMonitoringDelivery.VehicleActivity.MonitoredVehicleJourney
                     monitoredVehicleJourney = vehicleActivity
